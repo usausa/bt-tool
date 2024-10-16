@@ -1,43 +1,52 @@
+// ReSharper disable UseObjectOrCollectionInitializer
+using System.CommandLine;
+using System.CommandLine.NamingConventionBinder;
 using System.Diagnostics;
 
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
 
-var watcher = new BluetoothLEAdvertisementWatcher
+var rootCommand = new RootCommand("BLE scan tool");
+rootCommand.Handler = CommandHandler.Create(() =>
 {
-    ScanningMode = BluetoothLEScanningMode.Passive
-};
+    var watcher = new BluetoothLEAdvertisementWatcher
+    {
+        ScanningMode = BluetoothLEScanningMode.Passive
+    };
 
-watcher.Received += WatcherOnReceived;
+    watcher.Received += WatcherOnReceived;
 
-// TODO
-// Watcherのオプション
-// 1度だけ
-// Deviceが必要なこと
-// GATTの詳細表示
+    // TODO
+    // Watcherのオプション
+    // 1度だけ
+    // Deviceが必要なこと
+    // GATTの詳細表示
 
-async void WatcherOnReceived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
-{
-    // TODO ロック
-    // TODO 基本情報で出せること
-    Debug.WriteLine($"Address: {args.BluetoothAddress:X12}");
+    async void WatcherOnReceived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
+    {
+        // TODO ロック
+        // TODO 基本情報で出せること
+        Debug.WriteLine($"Address: {args.BluetoothAddress:X12}");
 
-    // Device
-    var device = await BluetoothLEDevice.FromBluetoothAddressAsync(args.BluetoothAddress);
+        // Device
+        var device = await BluetoothLEDevice.FromBluetoothAddressAsync(args.BluetoothAddress);
 
-    // Gatt
-    var gatt = device is not null ? await device.GetGattServicesAsync() : null;
-    //if (gatt?.Services.Count > 0)
-    //{
-    //    for (var i = 0; i < gatt!.Services.Count; i++)
-    //    {
-    //        Console.WriteLine($"  {gatt.Services[i].Uuid}");
-    //    }
-    //}
+        // Gatt
+        var gatt = device is not null ? await device.GetGattServicesAsync() : null;
+        //if (gatt?.Services.Count > 0)
+        //{
+        //    for (var i = 0; i < gatt!.Services.Count; i++)
+        //    {
+        //        Console.WriteLine($"  {gatt.Services[i].Uuid}");
+        //    }
+        //}
 
-    Console.WriteLine($"{args.Timestamp:HH:mm:ss.fff} {args.BluetoothAddress:X12} {args.RawSignalStrengthInDBm} {device?.Name} {gatt?.Status} {gatt?.Services.Count}");
-}
+        Console.WriteLine($"{args.Timestamp:HH:mm:ss.fff} {args.BluetoothAddress:X12} {args.RawSignalStrengthInDBm} {device?.Name} {gatt?.Status} {gatt?.Services.Count}");
+    }
 
-watcher.Start();
+    watcher.Start();
 
-Console.ReadLine();
+    Console.ReadLine();
+});
+
+return await rootCommand.InvokeAsync(args).ConfigureAwait(false);
