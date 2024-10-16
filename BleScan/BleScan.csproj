@@ -4,15 +4,6 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0-windows10.0.22000.0</TargetFramework>
     <CodeAnalysisRuleSet>..\Analyzers.ruleset</CodeAnalysisRuleSet>
-    <PackAsTool>true</PackAsTool>
-    <ToolCommandName>blescan</ToolCommandName>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <PackageId>DeviceTool.BleScan</PackageId>
-    <Title>Bluetooth tool</Title>
-    <Description>Bluetooth tool</Description>
-    <PackageTags>tools bluetooth</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
