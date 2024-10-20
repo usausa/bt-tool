@@ -6,6 +6,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
+using BleScan;
 
 var rootCommand = new RootCommand("BLE scan tool");
 rootCommand.AddOption(new Option<bool>(["--active", "-a"], "Active scanning"));
@@ -89,12 +90,17 @@ static void RootCommandHandler(
                         ConsoleWriteLine(ConsoleColor.Yellow, "GattServices:");
                         foreach (var service in services.Services)
                         {
-                            ConsoleWriteLine(Console.ForegroundColor, $"  {service.Uuid}");
+                            ConsoleWrite(Console.ForegroundColor, $"  {service.Uuid}    ");
+                            ConsoleWriteLine(ConsoleColor.Blue, DisplayHelper.GetServiceName(service));
                             try
                             {
                                 foreach (var characteristic in service.GetAllCharacteristics())
                                 {
-                                    ConsoleWriteLine(Console.ForegroundColor, $"    {characteristic.Uuid} {characteristic.UserDescription}");
+                                    ConsoleWrite(Console.ForegroundColor, $"    {characteristic.Uuid}    ");
+                                    ConsoleWrite(ConsoleColor.Blue, DisplayHelper.GetCharacteristicName(characteristic));
+                                    ConsoleWrite(Console.ForegroundColor, " [");
+                                    ConsoleWrite(ConsoleColor.Green, characteristic.CharacteristicProperties.ToString());
+                                    ConsoleWriteLine(Console.ForegroundColor, "]");
                                 }
                             }
                             catch
