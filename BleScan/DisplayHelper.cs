@@ -54,7 +54,7 @@ internal static class DisplayHelper
     // ReSharper disable UnusedMember.Global
     // ReSharper disable IdentifierTypo
     // ReSharper disable InconsistentNaming
-    public enum GattNativeServiceUuid : ushort
+    internal enum GattNativeServiceUuid : ushort
     {
         None = 0,
         AlertNotification = 0x1811,
@@ -80,7 +80,7 @@ internal static class DisplayHelper
         SimpleKeyService = 0xFFE0
     }
 
-    public enum GattNativeCharacteristicUuid : ushort
+    internal enum GattNativeCharacteristicUuid : ushort
     {
         None = 0,
         AlertCategoryID = 0x2A43,

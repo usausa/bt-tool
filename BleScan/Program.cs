@@ -37,6 +37,7 @@ static void RootCommandHandler(
     watcher.Received += WatcherOnReceived;
 
 #pragma warning disable CA1031
+    // ReSharper disable once AsyncVoidMethod
     async void WatcherOnReceived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
     {
         if (once)
