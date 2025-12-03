@@ -27,7 +27,7 @@ internal static class DisplayHelper
                 return ((GattNativeCharacteristicUuid)id).ToString();
             }
         }
-        if (!String.IsNullOrEmpty(characteristic.UserDescription))
+        if (!String.IsNullOrWhiteSpace(characteristic.UserDescription))
         {
             return characteristic.UserDescription;
         }
