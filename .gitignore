@@ -417,7 +417,14 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
+# AI
+CLAUDE.local.md
+.claude/settings.local.json
+.chrome-temp
+.edge-temp
+.dotnet-home
+
 # Custom
 desktop.ini
 __*
-/BleScan/Properties/launchSettings.json
+launchSettings.json
