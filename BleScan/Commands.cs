@@ -34,6 +34,8 @@ public sealed class RootCommandHandler : ICommandHandler
     [Option("--section", "-s", Description = "Show data section")]
     public bool Section { get; set; }
 
+    private static readonly Lock Sync = new();
+
     public ValueTask ExecuteAsync(CommandContext context)
     {
         var set = new HashSet<ulong>();
@@ -51,7 +53,7 @@ public sealed class RootCommandHandler : ICommandHandler
         {
             if (Once)
             {
-                lock (set)
+                lock (Sync)
                 {
                     if (!set.Add(args.BluetoothAddress))
                     {
@@ -62,11 +64,11 @@ public sealed class RootCommandHandler : ICommandHandler
 
             try
             {
-                var device = await BluetoothLEDevice.FromBluetoothAddressAsync(args.BluetoothAddress);
+                using var device = await BluetoothLEDevice.FromBluetoothAddressAsync(args.BluetoothAddress);
                 var services = (Gatt && (device is not null)) ? await device.GetGattServicesAsync() : null;
                 var name = device?.Name ?? "(Unknown)";
 
-                lock (watcher)
+                lock (Sync)
                 {
                     ConsoleWrite(ConsoleColor.Cyan, $"{args.Timestamp:HH:mm:ss.fff}");
                     ConsoleWrite(Console.ForegroundColor, " [");
@@ -100,22 +102,29 @@ public sealed class RootCommandHandler : ICommandHandler
                             ConsoleWriteLine(ConsoleColor.Yellow, "GattServices:");
                             foreach (var service in services.Services)
                             {
-                                ConsoleWrite(Console.ForegroundColor, $"  {service.Uuid}    ");
-                                ConsoleWriteLine(ConsoleColor.Blue, DisplayHelper.GetServiceName(service));
                                 try
                                 {
-                                    foreach (var characteristic in service.GetAllCharacteristics())
+                                    ConsoleWrite(Console.ForegroundColor, $"  {service.Uuid}    ");
+                                    ConsoleWriteLine(ConsoleColor.Blue, DisplayHelper.GetServiceName(service));
+                                    try
                                     {
-                                        ConsoleWrite(Console.ForegroundColor, $"    {characteristic.Uuid}    ");
-                                        ConsoleWrite(ConsoleColor.Blue, DisplayHelper.GetCharacteristicName(characteristic));
-                                        ConsoleWrite(Console.ForegroundColor, " [");
-                                        ConsoleWrite(ConsoleColor.Green, characteristic.CharacteristicProperties.ToString());
-                                        ConsoleWriteLine(Console.ForegroundColor, "]");
+                                        foreach (var characteristic in service.GetAllCharacteristics())
+                                        {
+                                            ConsoleWrite(Console.ForegroundColor, $"    {characteristic.Uuid}    ");
+                                            ConsoleWrite(ConsoleColor.Blue, DisplayHelper.GetCharacteristicName(characteristic));
+                                            ConsoleWrite(Console.ForegroundColor, " [");
+                                            ConsoleWrite(ConsoleColor.Green, characteristic.CharacteristicProperties.ToString());
+                                            ConsoleWriteLine(Console.ForegroundColor, "]");
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        ConsoleWriteLine(ConsoleColor.Red, "    (Get characteristics failed)");
                                     }
                                 }
-                                catch
+                                finally
                                 {
-                                    ConsoleWriteLine(ConsoleColor.Red, "    (Get characteristics failed)");
+                                    service.Dispose();
                                 }
                             }
                         }
@@ -168,6 +177,9 @@ public sealed class RootCommandHandler : ICommandHandler
 
         Console.ReadLine();
 
+        watcher.Received -= WatcherOnReceived;
+        watcher.Stop();
+
         return ValueTask.CompletedTask;
     }
 
@@ -190,7 +202,7 @@ public sealed class RootCommandHandler : ICommandHandler
     private static unsafe string ToAddressString(ulong address)
     {
         var hex = stackalloc char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-        var span = stackalloc char[18];
+        var span = stackalloc char[17];
         var offset = 0;
 
         span[offset++] = hex[(address >> 44) & 0xF];
@@ -209,15 +221,15 @@ public sealed class RootCommandHandler : ICommandHandler
         span[offset++] = hex[(address >> 8) & 0xF];
         span[offset++] = ':';
         span[offset++] = hex[(address >> 4) & 0xF];
-        span[offset] = hex[address & 0xF];
+        span[offset++] = hex[address & 0xF];
 
-        return new string(span);
+        return new string(span, 0, offset);
     }
 
     private static unsafe string ToHexString(ReadOnlySpan<byte> source)
     {
         var hex = stackalloc char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-        var span = stackalloc char[(source.Length * 3) + 2];
+        var span = stackalloc char[(source.Length * 3) + 1];
         var offset = 0;
 
         span[offset++] = ' ';
@@ -228,6 +240,6 @@ public sealed class RootCommandHandler : ICommandHandler
             span[offset++] = hex[b & 0xF];
         }
 
-        return new string(span);
+        return new string(span, 0, offset);
     }
 }
