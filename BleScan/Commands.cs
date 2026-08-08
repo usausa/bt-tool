@@ -36,9 +36,15 @@ public sealed class RootCommandHandler : ICommandHandler
 
     private static readonly Lock Sync = new();
 
+    private const int MaxConcurrentLookup = 8;
+
+    private static readonly SemaphoreSlim LookupLimiter = new(MaxConcurrentLookup, MaxConcurrentLookup);
+
     public ValueTask ExecuteAsync(CommandContext context)
     {
         var set = new HashSet<ulong>();
+        var failed = 0;
+        var skipped = 0;
 
         var watcher = new BluetoothLEAdvertisementWatcher
         {
@@ -60,6 +66,12 @@ public sealed class RootCommandHandler : ICommandHandler
                         return;
                     }
                 }
+            }
+
+            if (!LookupLimiter.Wait(0))
+            {
+                Interlocked.Increment(ref skipped);
+                return;
             }
 
             try
@@ -168,7 +180,12 @@ public sealed class RootCommandHandler : ICommandHandler
             }
             catch
             {
+                Interlocked.Increment(ref failed);
                 ConsoleWriteLine(ConsoleColor.Red, "(Failed get information)");
+            }
+            finally
+            {
+                LookupLimiter.Release();
             }
         }
 #pragma warning restore CA1031
@@ -179,6 +196,11 @@ public sealed class RootCommandHandler : ICommandHandler
 
         watcher.Received -= WatcherOnReceived;
         watcher.Stop();
+
+        if ((failed > 0) || (skipped > 0))
+        {
+            ConsoleWriteLine(ConsoleColor.DarkGray, $"(Failed: {failed}, Skipped: {skipped})");
+        }
 
         return ValueTask.CompletedTask;
     }
