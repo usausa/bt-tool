@@ -68,7 +68,7 @@ public sealed class RootCommandHandler : ICommandHandler
                 }
             }
 
-            if (!LookupLimiter.Wait(0))
+            if (!await LookupLimiter.WaitAsync(0))
             {
                 Interlocked.Increment(ref skipped);
                 return;
