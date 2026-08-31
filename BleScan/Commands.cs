@@ -16,6 +16,12 @@ using Windows.Devices.Bluetooth.GenericAttributeProfile;
 
 public sealed class RootCommandHandler : ICommandHandler
 {
+    private const int MaxConcurrentLookup = 8;
+
+    private static readonly Lock Sync = new();
+
+    private static readonly SemaphoreSlim LookupLimiter = new(MaxConcurrentLookup, MaxConcurrentLookup);
+
     [Option("--active", "-a", Description = "Active scanning")]
     public bool Active { get; set; }
 
@@ -33,12 +39,6 @@ public sealed class RootCommandHandler : ICommandHandler
 
     [Option("--section", "-s", Description = "Show data section")]
     public bool Section { get; set; }
-
-    private static readonly Lock Sync = new();
-
-    private const int MaxConcurrentLookup = 8;
-
-    private static readonly SemaphoreSlim LookupLimiter = new(MaxConcurrentLookup, MaxConcurrentLookup);
 
     public ValueTask ExecuteAsync(CommandContext context)
     {
