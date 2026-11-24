@@ -4,6 +4,8 @@ using System.Globalization;
 
 internal static class AddressHelper
 {
+    private const string PlaceholderNamePrefix = "Bluetooth ";
+
     public static bool TryParseAddress(string value, out ulong address)
     {
         var hex = value.Replace(":", String.Empty, StringComparison.Ordinal).Replace("-", String.Empty, StringComparison.Ordinal);
@@ -41,5 +43,16 @@ internal static class AddressHelper
         span[offset++] = hex[address & 0xF];
 
         return new string(span, 0, offset);
+    }
+
+    public static string? NormalizeName(string? name, ulong address)
+    {
+        if (String.IsNullOrEmpty(name) ||
+            (name.StartsWith(PlaceholderNamePrefix, StringComparison.Ordinal) && TryParseAddress(name[PlaceholderNamePrefix.Length..], out var value) && (value == address)))
+        {
+            return null;
+        }
+
+        return name;
     }
 }

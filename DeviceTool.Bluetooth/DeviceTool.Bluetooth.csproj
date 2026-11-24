@@ -33,4 +33,10 @@
     <PackageReference Include="Usa.Smart.CommandLine.Hosting" Version="3.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="Data\*.json" />
+    <EmbeddedResource Include="Data\*.json" LogicalName="DeviceTool.Bluetooth.Data.%(Filename)%(Extension)" />
+    <None Include="..\THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
 </Project>

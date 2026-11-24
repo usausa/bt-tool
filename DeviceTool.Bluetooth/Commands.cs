@@ -31,6 +31,8 @@ public sealed class ScanCommand : ICommandHandler
 {
     private const int MaxConcurrentLookup = 8;
 
+    private static readonly TimeSpan ScanResponseDelay = TimeSpan.FromSeconds(1);
+
     private static readonly Lock Sync = new();
 
     private static readonly SemaphoreSlim LookupLimiter = new(MaxConcurrentLookup, MaxConcurrentLookup);
@@ -138,7 +140,7 @@ public sealed class ScanCommand : ICommandHandler
                 }
 
                 var localName = args.Advertisement.LocalName;
-                bool lookup;
+                bool wait;
                 lock (Sync)
                 {
                     if (stopped)
@@ -161,6 +163,22 @@ public sealed class ScanCommand : ICommandHandler
                         claimed = true;
                     }
 
+                    wait = Once && Active && String.IsNullOrEmpty(names.GetValueOrDefault(address));
+                }
+
+                if (wait)
+                {
+                    await Task.Delay(ScanResponseDelay);
+                }
+
+                bool lookup;
+                lock (Sync)
+                {
+                    if (stopped)
+                    {
+                        return;
+                    }
+
                     lookup = Info || Gatt || !names.ContainsKey(address);
                 }
 
@@ -174,12 +192,12 @@ public sealed class ScanCommand : ICommandHandler
 
                     acquired = true;
                     device = await BluetoothLEDevice.FromBluetoothAddressAsync(address);
-                    var deviceName = device?.Name;
+                    var deviceName = NormalizeName(device?.Name, address);
                     lock (Sync)
                     {
                         if (String.IsNullOrEmpty(names.GetValueOrDefault(address)))
                         {
-                            names[address] = String.IsNullOrEmpty(deviceName) ? null : deviceName;
+                            names[address] = deviceName;
                         }
                     }
                 }
@@ -227,8 +245,7 @@ public sealed class ScanCommand : ICommandHandler
                     {
                         foreach (var md in args.Advertisement.ManufacturerData)
                         {
-                            ConsoleWrite(ConsoleColor.Yellow, "CompanyId:");
-                            ConsoleWriteLine(Console.ForegroundColor, $" 0x{md.CompanyId:X4}");
+                            WriteNamedValue("CompanyId:", $"0x{md.CompanyId:X4}", BluetoothNames.GetCompanyName(md.CompanyId));
                             ConsoleWriteLine(ConsoleColor.Yellow, "Data:");
                             ConsoleWriteHex(md.Data.ToArray(), String.Empty);
                         }
@@ -238,8 +255,7 @@ public sealed class ScanCommand : ICommandHandler
                     {
                         foreach (var ds in args.Advertisement.DataSections)
                         {
-                            ConsoleWrite(ConsoleColor.Yellow, "DataType:");
-                            ConsoleWriteLine(Console.ForegroundColor, $" 0x{ds.DataType:X2}");
+                            WriteNamedValue("DataType:", $"0x{ds.DataType:X2}", BluetoothNames.GetAdTypeName(ds.DataType));
                             ConsoleWriteLine(ConsoleColor.Yellow, "Data:");
                             ConsoleWriteHex(ds.Data.ToArray(), String.Empty);
                         }
@@ -339,12 +355,26 @@ public sealed class ScanCommand : ICommandHandler
         company = 0;
         return false;
     }
+
+    private static void WriteNamedValue(string label, string value, string? name)
+    {
+        ConsoleWrite(ConsoleColor.Yellow, label);
+        ConsoleWrite(Console.ForegroundColor, $" {value}");
+        if (name is not null)
+        {
+            ConsoleWrite(ConsoleColor.Blue, $" {name}");
+        }
+
+        Console.WriteLine();
+    }
 }
 
 [Command("gatt", "Show GATT services of a device")]
 public sealed class GattCommand : ICommandHandler
 {
     private static readonly TimeSpan DiscoveryTimeout = TimeSpan.FromSeconds(10);
+
+    private static readonly TimeSpan NameTimeout = TimeSpan.FromSeconds(3);
 
     [Option<string>("--address", "-a", Description = "Device address (e.g. AA:BB:CC:DD:EE:FF)", Required = true)]
     public string Address { get; set; } = default!;
@@ -376,11 +406,20 @@ public sealed class GattCommand : ICommandHandler
             return;
         }
 
-        var name = device.Name;
+        var name = NormalizeName(device.Name, address);
+        if (name is null)
+        {
+            name = await FindLocalNameAsync(address, context.CancellationToken);
+            if (context.CancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+        }
+
         ConsoleWrite(Console.ForegroundColor, "[");
         ConsoleWrite(ConsoleColor.DarkCyan, ToAddressString(address));
         ConsoleWrite(Console.ForegroundColor, "] ");
-        ConsoleWriteLine(ConsoleColor.Magenta, String.IsNullOrEmpty(name) ? "(Unknown)" : name);
+        ConsoleWriteLine(ConsoleColor.Magenta, name ?? "(Unknown)");
         DeviceWriter.WriteInfo(device);
 
         var gatt = await GattReader.ReadAsync(device, Uncached ? BluetoothCacheMode.Uncached : BluetoothCacheMode.Cached, Read);
@@ -399,13 +438,19 @@ public sealed class GattCommand : ICommandHandler
             return device;
         }
 
-        var addressType = await DiscoverAsync(address, cancellationToken);
-        return addressType.HasValue ? await BluetoothLEDevice.FromBluetoothAddressAsync(address, addressType.Value) : null;
+        var args = await DiscoverAsync(address, static _ => true, DiscoveryTimeout, cancellationToken);
+        return args is not null ? await BluetoothLEDevice.FromBluetoothAddressAsync(address, args.BluetoothAddressType) : null;
     }
 
-    private static async ValueTask<BluetoothAddressType?> DiscoverAsync(ulong address, CancellationToken cancellationToken)
+    private static async ValueTask<string?> FindLocalNameAsync(ulong address, CancellationToken cancellationToken)
     {
-        var found = new TaskCompletionSource<BluetoothAddressType?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var args = await DiscoverAsync(address, static x => !String.IsNullOrEmpty(x.Advertisement.LocalName), NameTimeout, cancellationToken);
+        return args?.Advertisement.LocalName;
+    }
+
+    private static async ValueTask<BluetoothLEAdvertisementReceivedEventArgs?> DiscoverAsync(ulong address, Func<BluetoothLEAdvertisementReceivedEventArgs, bool> predicate, TimeSpan duration, CancellationToken cancellationToken)
+    {
+        var found = new TaskCompletionSource<BluetoothLEAdvertisementReceivedEventArgs?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var watcher = new BluetoothLEAdvertisementWatcher
         {
@@ -416,22 +461,22 @@ public sealed class GattCommand : ICommandHandler
 
         void WatcherOnReceived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
         {
-            if (args.BluetoothAddress == address)
+            if ((args.BluetoothAddress == address) && predicate(args))
             {
-                found.TrySetResult(args.BluetoothAddressType);
+                found.TrySetResult(args);
             }
         }
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(DiscoveryTimeout);
+        timeout.CancelAfter(duration);
         await using var registration = timeout.Token.Register(() => found.TrySetResult(null));
 
         watcher.Start();
-        var addressType = await found.Task;
+        var result = await found.Task;
 
         watcher.Received -= WatcherOnReceived;
         watcher.Stop();
 
-        return addressType;
+        return result;
     }
 }
