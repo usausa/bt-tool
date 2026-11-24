@@ -4,7 +4,7 @@ using Smart.CommandLine.Hosting;
 
 if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
 {
-    await Console.Error.WriteLineAsync("This tool requires Windows 10 version 2004 or later.");
+    OutputWriter.WriteError("This tool requires Windows 10 version 2004 or later.");
     return 1;
 }
 

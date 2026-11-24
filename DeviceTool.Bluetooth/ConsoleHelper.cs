@@ -18,27 +18,30 @@ internal static class ConsoleHelper
         Console.ForegroundColor = backup;
     }
 
-    public static void ConsoleWriteHex(ReadOnlySpan<byte> data, string indent)
+    public static void ConsoleWriteHex(ConsoleColor color, ReadOnlySpan<byte> data, string indent)
     {
         for (var start = 0; start < data.Length; start += 16)
         {
-            ConsoleWriteLine(ConsoleColor.DarkGreen, indent + ToHexString(data.Slice(start, Math.Min(16, data.Length - start))));
+            ConsoleWriteLine(color, indent + ToHexString(data.Slice(start, Math.Min(16, data.Length - start))));
         }
     }
 
-    public static void ConsoleWriteHex(ConsoleColor color, string label, ReadOnlySpan<byte> data)
+    public static void ConsoleWriteHex(ConsoleColor labelColor, string label, ConsoleColor dataColor, ReadOnlySpan<byte> data)
     {
-        ConsoleWrite(color, label);
+        ConsoleWrite(labelColor, label);
         if (data.IsEmpty)
         {
-            ConsoleWriteLine(ConsoleColor.DarkGreen, " (Empty)");
+            ConsoleWriteLine(dataColor, " (Empty)");
             return;
         }
 
         var length = Math.Min(16, data.Length);
-        ConsoleWriteLine(ConsoleColor.DarkGreen, ToHexString(data[..length]));
-        ConsoleWriteHex(data[length..], new string(' ', label.Length));
+        ConsoleWriteLine(dataColor, ToHexString(data[..length]));
+        ConsoleWriteHex(dataColor, data[length..], new string(' ', label.Length));
     }
+
+    public static Task<bool> ConsoleWaitForLineAsync(CancellationToken cancellationToken) =>
+        Task.Run(static () => Console.ReadLine() is not null, cancellationToken);
 
     private static unsafe string ToHexString(ReadOnlySpan<byte> source)
     {

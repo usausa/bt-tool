@@ -1,10 +1,5 @@
 namespace DeviceTool.Bluetooth;
 
-using System.Globalization;
-
-using static DeviceTool.Bluetooth.AddressHelper;
-using static DeviceTool.Bluetooth.ConsoleHelper;
-
 internal sealed record ScanSummaryItem(ulong Address, string? Name, int Count, double AverageRssi, short MinRssi, short MaxRssi, DateTimeOffset LastSeen);
 
 internal sealed class ScanSummary
@@ -36,25 +31,6 @@ internal sealed class ScanSummary
             .OrderByDescending(static x => x.AverageRssi)
             .ThenBy(static x => x.Address)
             .ToList();
-
-    public static void Write(IReadOnlyList<ScanSummaryItem> items)
-    {
-        if (items.Count == 0)
-        {
-            ConsoleWriteLine(ConsoleColor.DarkGray, "(No devices)");
-            return;
-        }
-
-        ConsoleWriteLine(ConsoleColor.Yellow, "Address            Count  AvgRSSI  MinRSSI  MaxRSSI  LastSeen      Name");
-        foreach (var item in items)
-        {
-            ConsoleWrite(ConsoleColor.DarkCyan, ToAddressString(item.Address));
-            ConsoleWrite(Console.ForegroundColor, String.Create(CultureInfo.InvariantCulture, $"  {item.Count,5}  {item.AverageRssi,7:F1}  {item.MinRssi,7}  {item.MaxRssi,7}  "));
-            ConsoleWrite(ConsoleColor.Cyan, $"{item.LastSeen:HH:mm:ss.fff}");
-            ConsoleWrite(Console.ForegroundColor, "  ");
-            ConsoleWriteLine(ConsoleColor.Magenta, item.Name ?? "(Unknown)");
-        }
-    }
 
     private sealed class Entry
     {
