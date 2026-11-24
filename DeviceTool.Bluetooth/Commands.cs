@@ -84,9 +84,6 @@ public sealed class ScanCommand : ICommandHandler
     [Option<string>("--service", "-u", Description = "Filter by service UUID (e.g. 180F)")]
     public string? Service { get; set; }
 
-    [Option<bool>("--extended", Description = "Receive extended advertisements")]
-    public bool Extended { get; set; }
-
     [Option<bool>("--decode", "-e", Description = "Decode advertisement data with decoder definitions")]
     public bool Decode { get; set; }
 
@@ -177,8 +174,7 @@ public sealed class ScanCommand : ICommandHandler
 
         var watcher = new BluetoothLEAdvertisementWatcher
         {
-            ScanningMode = Active ? BluetoothLEScanningMode.Active : BluetoothLEScanningMode.Passive,
-            AllowExtendedAdvertisements = Extended
+            ScanningMode = Active ? BluetoothLEScanningMode.Active : BluetoothLEScanningMode.Passive
         };
 
         watcher.Received += WatcherOnReceived;

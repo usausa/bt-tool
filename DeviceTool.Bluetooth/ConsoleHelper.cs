@@ -1,7 +1,21 @@
 namespace DeviceTool.Bluetooth;
 
+using System.Text;
+
 internal static class ConsoleHelper
 {
+    public static bool ConsoleIsOutputRedirected => Console.IsOutputRedirected;
+
+    public static Encoding ConsoleOutputEncoding => Console.OutputEncoding;
+
+    public static ConsoleColor ConsoleForegroundColor => Console.ForegroundColor;
+
+    public static int ConsoleWindowWidth => Console.WindowWidth;
+
+    public static int ConsoleCursorLeft => Console.CursorLeft;
+
+    public static void ConsoleWrite(string value) => Console.Write(value);
+
     public static void ConsoleWrite(ConsoleColor color, string value)
     {
         var backup = Console.ForegroundColor;
@@ -10,6 +24,10 @@ internal static class ConsoleHelper
         Console.ForegroundColor = backup;
     }
 
+    public static void ConsoleWriteLine() => Console.WriteLine();
+
+    public static void ConsoleWriteLine(string value) => Console.WriteLine(value);
+
     public static void ConsoleWriteLine(ConsoleColor color, string value)
     {
         var backup = Console.ForegroundColor;
@@ -17,6 +35,12 @@ internal static class ConsoleHelper
         Console.WriteLine(value);
         Console.ForegroundColor = backup;
     }
+
+    public static void ConsoleWriteCarriageReturn() => Console.Write('\r');
+
+    public static void ConsoleWriteSpaces(int count) => Console.Write(new string(' ', count));
+
+    public static void ConsoleErrorWriteLine(string value) => Console.Error.WriteLine(value);
 
     public static void ConsoleWriteHex(ConsoleColor color, ReadOnlySpan<byte> data, string indent)
     {

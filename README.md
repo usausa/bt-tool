@@ -42,7 +42,6 @@ bttool scan [options]
 | `--address` | Filter by address |
 | `--company` / `-c` | Filter by company ID |
 | `--service` / `-u` | Filter by service UUID |
-| `--extended` | Receive extended advertisements |
 | `--decode` / `-e` | Decode advertisement data with decoder definitions |
 | `--decoders` | Decoder definition file (default: built-in) |
 | `--format` / `-f` | Output format (`text` or `json`) |
@@ -56,9 +55,9 @@ bttool scan -a -o -g
 bttool scan -a -o -m
 bttool scan -a -o -x
 bttool scan -a -d 30 -r -70
-bttool scan -a -m -c 0x0969
-bttool scan -a -u FD3D
-bttool scan -a -e -c 0x0969
+bttool scan -a -m -c 0x1234
+bttool scan -a -u 180F
+bttool scan -a -e
 bttool scan -a --decoders my-decoders.json
 bttool scan -a -o -f json
 bttool scan -a -d 60 --summary

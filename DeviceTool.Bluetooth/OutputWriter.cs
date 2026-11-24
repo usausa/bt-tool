@@ -28,11 +28,13 @@ internal static class OutputWriter
 
     private static readonly string BarSymbols = GetBarSymbols();
 
-    public static bool IsOutputRedirected => Console.IsOutputRedirected;
+    private static string? liveBarSymbols;
 
-    public static void WriteError(string message) => Console.Error.WriteLine(message);
+    public static bool IsOutputRedirected => ConsoleIsOutputRedirected;
 
-    public static void WriteJson(string line) => Console.Out.WriteLine(line);
+    public static void WriteError(string message) => ConsoleErrorWriteLine(message);
+
+    public static void WriteJson(string line) => ConsoleWriteLine(line);
 
     public static void WriteStatus(string message) => ConsoleWriteLine(Palette.Muted, $"      ({message})");
 
@@ -194,7 +196,7 @@ internal static class OutputWriter
             ConsoleWrite(Palette.ReferenceName, $" {referenceName}");
         }
 
-        Console.WriteLine();
+        ConsoleWriteLine();
     }
 
     public static void WriteHex(ReadOnlySpan<byte> data) => ConsoleWriteHex(Palette.Data, data, String.Empty);
@@ -208,7 +210,7 @@ internal static class OutputWriter
             ConsoleWrite(Palette.Plain, (field.Unit is null) ? $" {field.Name}={field.Value}" : $" {field.Name}={field.Value} {field.Unit}");
         }
 
-        Console.WriteLine();
+        ConsoleWriteLine();
     }
 
     public static void WriteScanFailure(ulong address, bool json) => WriteScanStatus(json, Palette.Error, $"[{ToAddressString(address)}] (Failed get information)");
@@ -236,21 +238,22 @@ internal static class OutputWriter
 
     public static void WriteSignal(SignalSnapshot snapshot, bool silent)
     {
-        foreach (var (color, text) in GetSignalSegments(snapshot, silent))
+        foreach (var (color, text) in GetSignalSegments(snapshot, silent, BarSymbols))
         {
             ConsoleWrite(color, text);
         }
 
-        Console.WriteLine();
+        ConsoleWriteLine();
     }
 
     public static int WriteLiveSignal(SignalSnapshot snapshot, bool silent, int width)
     {
-        var limit = Console.WindowWidth - 1;
-        Console.Write('\r');
-        foreach (var (color, text) in GetSignalSegments(snapshot, silent))
+        liveBarSymbols ??= GetLiveBarSymbols();
+        var limit = ConsoleWindowWidth - 1;
+        ConsoleWriteCarriageReturn();
+        foreach (var (color, text) in GetSignalSegments(snapshot, silent, liveBarSymbols))
         {
-            var available = limit - Console.CursorLeft;
+            var available = limit - ConsoleCursorLeft;
             if (available <= 0)
             {
                 break;
@@ -259,11 +262,11 @@ internal static class OutputWriter
             ConsoleWrite(color, (text.Length > available) ? text[..available] : text);
         }
 
-        var end = Console.CursorLeft;
+        var end = ConsoleCursorLeft;
         var clear = Math.Min(width, limit);
         if (end < clear)
         {
-            Console.Write(new string(' ', clear - end));
+            ConsoleWriteSpaces(clear - end);
         }
 
         return end;
@@ -271,9 +274,9 @@ internal static class OutputWriter
 
     public static void EndLiveSignal()
     {
-        if (Console.CursorLeft > 0)
+        if (ConsoleCursorLeft > 0)
         {
-            Console.WriteLine();
+            ConsoleWriteLine();
         }
     }
 
@@ -295,7 +298,7 @@ internal static class OutputWriter
     {
         if (json)
         {
-            Console.Error.WriteLine(message);
+            ConsoleErrorWriteLine(message);
         }
         else
         {
@@ -303,7 +306,7 @@ internal static class OutputWriter
         }
     }
 
-    private static List<(ConsoleColor Color, string Text)> GetSignalSegments(SignalSnapshot snapshot, bool silent)
+    private static List<(ConsoleColor Color, string Text)> GetSignalSegments(SignalSnapshot snapshot, bool silent, string symbols)
     {
         var time = (Palette.Timestamp, $"{DateTime.Now:HH:mm:ss}");
         if (silent)
@@ -315,14 +318,14 @@ internal static class OutputWriter
         [
             time,
             (Palette.Plain, String.Create(CultureInfo.InvariantCulture, $" RSSI {snapshot.Rssi} dBm  avg {snapshot.RecentAverage}  min {snapshot.MinRssi}  max {snapshot.MaxRssi}  ")),
-            (GetSignalColor(snapshot.RecentAverage), GetBar(snapshot.RecentAverage))
+            (GetSignalColor(snapshot.RecentAverage), GetBar(snapshot.RecentAverage, symbols))
         ];
     }
 
-    private static string GetBar(int rssi)
+    private static string GetBar(int rssi, string symbols)
     {
         var length = Math.Clamp((int)Math.Round((double)(rssi - BarMinRssi) * BarLength / (BarMaxRssi - BarMinRssi), MidpointRounding.AwayFromZero), 0, BarLength);
-        return new string(BarSymbols[0], length) + new string(BarSymbols[1], BarLength - length);
+        return new string(symbols[0], length) + new string(symbols[1], BarLength - length);
     }
 
     private static ConsoleColor GetSignalColor(int rssi) => rssi switch
@@ -334,8 +337,24 @@ internal static class OutputWriter
 
     private static string GetBarSymbols()
     {
-        var encoding = Console.OutputEncoding;
+        var encoding = ConsoleOutputEncoding;
         return (encoding.GetString(encoding.GetBytes(BlockSymbols)) == BlockSymbols) ? BlockSymbols : AsciiSymbols;
+    }
+
+    private static string GetLiveBarSymbols()
+    {
+        if (BarSymbols != BlockSymbols)
+        {
+            return BarSymbols;
+        }
+
+        ConsoleWriteCarriageReturn();
+        ConsoleWrite(BlockSymbols);
+        var moved = ConsoleCursorLeft;
+        ConsoleWriteCarriageReturn();
+        ConsoleWriteSpaces(moved);
+        ConsoleWriteCarriageReturn();
+        return (moved == BlockSymbols.Length) ? BlockSymbols : AsciiSymbols;
     }
 
     private static class Palette
@@ -364,6 +383,6 @@ internal static class OutputWriter
 
         public const ConsoleColor Weak = ConsoleColor.Red;
 
-        public static ConsoleColor Plain => Console.ForegroundColor;
+        public static ConsoleColor Plain => ConsoleForegroundColor;
     }
 }
