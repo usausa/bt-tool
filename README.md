@@ -45,6 +45,9 @@ bttool scan -a -d 30 -r -70
 bttool scan -a -m -c 0x0969
 ```
 
+<img src="Images/scan.png" title="image">
+<img src="Images/scan-data.png" title="image">
+
 ### gatt
 
 ```
@@ -62,6 +65,4 @@ bttool gatt -a AA:BB:CC:DD:EE:FF
 bttool gatt -a AA:BB:CC:DD:EE:FF -r
 ```
 
-<img src="Images/image1.png" title="image">
-<img src="Images/image2.png" title="image">
-<img src="Images/image3.png" title="image">
+<img src="Images/gatt.png" title="image">
