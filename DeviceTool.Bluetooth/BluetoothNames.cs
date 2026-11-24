@@ -113,11 +113,13 @@ internal static class BluetoothNames
         return JsonDocument.Parse(stream);
     }
 
-    private static bool TryParseUuid(string? value, out Guid uuid)
+    public static Guid ToUuid(uint shortUuid) => new(shortUuid, 0x0000, 0x1000, 0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB);
+
+    public static bool TryParseUuid(string? value, out Guid uuid)
     {
         if ((value?.Length is 4 or 8) && UInt32.TryParse(value, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var shortUuid))
         {
-            uuid = new Guid(shortUuid, 0x0000, 0x1000, 0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB);
+            uuid = ToUuid(shortUuid);
             return true;
         }
 

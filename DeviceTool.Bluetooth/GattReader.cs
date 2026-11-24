@@ -13,6 +13,37 @@ internal sealed record GattCharacteristicInfo(Guid Uuid, string Name, GattCharac
 
 internal sealed record GattValueInfo(GattCommunicationStatus Status, byte[] Data);
 
+internal sealed record GattCharacteristicMatch(GattDeviceService Service, GattCharacteristic Characteristic);
+
+internal sealed class GattCharacteristicSearch : IDisposable
+{
+    private readonly IReadOnlyList<GattDeviceService> services;
+
+    public GattCommunicationStatus ServicesStatus { get; }
+
+    public GattCommunicationStatus CharacteristicsStatus { get; }
+
+    public int ServiceCount => services.Count;
+
+    public IReadOnlyList<GattCharacteristicMatch> Matches { get; }
+
+    public GattCharacteristicSearch(IReadOnlyList<GattDeviceService> services, GattCommunicationStatus servicesStatus, GattCommunicationStatus characteristicsStatus, IReadOnlyList<GattCharacteristicMatch> matches)
+    {
+        this.services = services;
+        ServicesStatus = servicesStatus;
+        CharacteristicsStatus = characteristicsStatus;
+        Matches = matches;
+    }
+
+    public void Dispose()
+    {
+        foreach (var service in services)
+        {
+            service.Dispose();
+        }
+    }
+}
+
 internal static class GattReader
 {
     public static async ValueTask<GattInfo> ReadAsync(BluetoothLEDevice device, BluetoothCacheMode cacheMode, bool readValues)
@@ -43,6 +74,53 @@ internal static class GattReader
                     service.Dispose();
                 }
             }
+        }
+    }
+
+    public static async ValueTask<GattCharacteristicSearch> FindCharacteristicsAsync(BluetoothLEDevice device, Guid? serviceUuid, Guid characteristicUuid)
+    {
+        var result = serviceUuid.HasValue
+            ? await device.GetGattServicesForUuidAsync(serviceUuid.Value, BluetoothCacheMode.Cached)
+            : await device.GetGattServicesAsync(BluetoothCacheMode.Cached);
+        var services = result.Services ?? [];
+        if (result.Status != GattCommunicationStatus.Success)
+        {
+            return new GattCharacteristicSearch(services, result.Status, GattCommunicationStatus.Success, []);
+        }
+
+        try
+        {
+            var status = GattCommunicationStatus.Success;
+            var matches = new List<GattCharacteristicMatch>();
+            foreach (var service in services)
+            {
+                var characteristics = await service.GetCharacteristicsForUuidAsync(characteristicUuid, BluetoothCacheMode.Cached);
+                if (characteristics.Status != GattCommunicationStatus.Success)
+                {
+                    if (status == GattCommunicationStatus.Success)
+                    {
+                        status = characteristics.Status;
+                    }
+
+                    continue;
+                }
+
+                foreach (var characteristic in characteristics.Characteristics)
+                {
+                    matches.Add(new GattCharacteristicMatch(service, characteristic));
+                }
+            }
+
+            return new GattCharacteristicSearch(services, result.Status, status, matches);
+        }
+        catch
+        {
+            foreach (var service in services)
+            {
+                service.Dispose();
+            }
+
+            throw;
         }
     }
 

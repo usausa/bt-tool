@@ -1,0 +1,67 @@
+{
+  "decoders": [
+    {
+      "name": "SwitchBot Plug Mini",
+      "companyId": "0x0969",
+      "minLength": 12,
+      "conditions": [
+        { "namePrefix": "WoPlug" },
+        { "serviceUuid": "FD3D", "offset": 0, "mask": "0x7F", "values": [ "0x67", "0x6A" ] },
+        { "serviceUuid": "0D00", "offset": 0, "mask": "0x7F", "values": [ "0x67", "0x6A" ] }
+      ],
+      "fields": [
+        { "name": "State", "offset": 7, "mask": "0x80", "map": { "0x00": "Off", "0x80": "On" } },
+        { "name": "Power", "offset": 10, "size": 2, "endian": "big", "mask": "0x3F7F", "scale": 0.1, "digits": 1, "unit": "W" }
+      ]
+    },
+    {
+      "name": "SwitchBot Meter",
+      "companyId": "0x0969",
+      "minLength": 11,
+      "conditions": [
+        { "namePrefix": "WoTH" },
+        { "namePrefix": "WoIOSensor" },
+        { "namePrefix": "WoMeter" },
+        { "serviceUuid": "FD3D", "offset": 0, "mask": "0x7F", "values": [ "0x54", "0x69", "0x77" ] },
+        { "serviceUuid": "0D00", "offset": 0, "mask": "0x7F", "values": [ "0x54", "0x69", "0x77" ] }
+      ],
+      "fields": [
+        {
+          "name": "Temperature",
+          "type": "composite",
+          "parts": [
+            { "offset": 9, "mask": "0x7F" },
+            { "offset": 8, "mask": "0x0F", "scale": 0.1 }
+          ],
+          "sign": { "offset": 9, "mask": "0x80", "positive": true },
+          "digits": 1,
+          "unit": "C"
+        },
+        { "name": "Humidity", "offset": 10, "mask": "0x7F", "unit": "%" },
+        { "name": "CO2", "offset": 13, "size": 2, "endian": "big", "minLength": 16, "unit": "ppm" }
+      ]
+    },
+    {
+      "name": "RS-BTWATTCH2",
+      "companyId": "0x0B60",
+      "minLength": 8,
+      "fields": [
+        { "name": "Voltage", "offset": 1, "size": 2, "scale": 0.1, "digits": 1, "unit": "V" },
+        { "name": "Current", "offset": 3, "size": 2, "scale": 0.001, "digits": 3, "unit": "A" },
+        { "name": "Power", "offset": 5, "size": 3, "scale": 0.001, "digits": 3, "unit": "W" }
+      ]
+    },
+    {
+      "name": "iBeacon",
+      "companyId": "0x004C",
+      "prefix": "0215",
+      "minLength": 23,
+      "fields": [
+        { "name": "UUID", "type": "uuid", "offset": 2 },
+        { "name": "Major", "offset": 18, "size": 2, "endian": "big" },
+        { "name": "Minor", "offset": 20, "size": 2, "endian": "big" },
+        { "name": "TxPower", "offset": 22, "signed": true, "unit": "dBm" }
+      ]
+    }
+  ]
+}

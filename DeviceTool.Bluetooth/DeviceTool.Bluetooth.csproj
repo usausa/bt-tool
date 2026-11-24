@@ -36,7 +36,6 @@
   <ItemGroup>
     <None Remove="Data\*.json" />
     <EmbeddedResource Include="Data\*.json" LogicalName="DeviceTool.Bluetooth.Data.%(Filename)%(Extension)" />
-    <None Include="..\THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

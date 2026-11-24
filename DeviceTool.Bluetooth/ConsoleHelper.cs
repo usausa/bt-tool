@@ -26,6 +26,20 @@ internal static class ConsoleHelper
         }
     }
 
+    public static void ConsoleWriteHex(ConsoleColor color, string label, ReadOnlySpan<byte> data)
+    {
+        ConsoleWrite(color, label);
+        if (data.IsEmpty)
+        {
+            ConsoleWriteLine(ConsoleColor.DarkGreen, " (Empty)");
+            return;
+        }
+
+        var length = Math.Min(16, data.Length);
+        ConsoleWriteLine(ConsoleColor.DarkGreen, ToHexString(data[..length]));
+        ConsoleWriteHex(data[length..], new string(' ', label.Length));
+    }
+
     private static unsafe string ToHexString(ReadOnlySpan<byte> source)
     {
         var hex = stackalloc char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
