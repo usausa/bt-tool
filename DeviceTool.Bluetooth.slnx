@@ -5,11 +5,11 @@
     <File Path=".gitignore" />
     <File Path=".globalconfig" />
     <File Path="AGENTS.md" />
-    <File Path="BluetoothTool.sln.DotSettings" />
+    <File Path="DeviceTool.Bluetooth.sln.DotSettings" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="BleScan/BleScan.csproj" />
+  <Project Path="DeviceTool.Bluetooth/DeviceTool.Bluetooth.csproj" />
 </Solution>

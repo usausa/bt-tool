@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>bttool</ToolCommandName>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>DeviceTool.Bluetooth</PackageId>
+    <Title>DeviceTool.Bluetooth</Title>
+    <Description>Bluetooth LE tool.</Description>
+    <PackageTags>tools bluetooth ble gatt</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <WindowsSdkNetRefVersion>10.0.26100.87</WindowsSdkNetRefVersion>
+    <WindowsSdkNetRefLib>$(NuGetPackageRoot)microsoft.windows.sdk.net.ref\$(WindowsSdkNetRefVersion)\lib\net9.0\</WindowsSdkNetRefLib>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageDownload Include="Microsoft.Windows.SDK.NET.Ref" Version="[$(WindowsSdkNetRefVersion)]" />
+    <Reference Include="Microsoft.Windows.SDK.NET" HintPath="$(WindowsSdkNetRefLib)Microsoft.Windows.SDK.NET.dll" />
+    <Reference Include="WinRT.Runtime" HintPath="$(WindowsSdkNetRefLib)WinRT.Runtime.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="3.0.0" />
+    <PackageReference Include="Usa.Smart.CommandLine.Hosting" Version="3.1.0" />
+  </ItemGroup>
+
+</Project>

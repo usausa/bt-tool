@@ -1,4 +1,4 @@
-namespace BleScan;
+namespace DeviceTool.Bluetooth;
 
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 
